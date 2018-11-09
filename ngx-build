@@ -146,39 +146,11 @@ if (defined $ld_opts) {
 
 my $root = `pwd`;
 chomp $root;
-my $target = "$root/work/nginx";
 
 my $home = `cd ~ && pwd`;
 chomp $home;
 
-my $build_root = "buildroot";
-if (! -d $build_root) {
-    mkdir $build_root or
-        die "failed to create directory $build_root.\n";
-}
-
-chdir $build_root or
-    die "failed to switch to directory $build_root\n";
-
-my $tarball = "nginx-$version.tar.gz";
-if ($force || ! -f $tarball || ! -d "nginx-$version") {
-    if (!-d "$home/work") {
-        mkdir "$home/work" or
-            die "failed to create directory ~/work\n";
-    }
-
-    if (-f "$home/work/$tarball") {
-        shell("cp $home/work/$tarball ./");
-
-    } else {
-        shell("axel -n2 -o $home/work/$tarball http://nginx.org/download/$tarball");
-        shell("cp $home/work/$tarball ./");
-    }
-
-    shell("tar -xzvf $tarball");
-
-    apply_patches();
-}
+apply_patches();
 
 chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
 
@@ -190,12 +162,6 @@ if ($force || ! -f "Makefile" || -M "$root/config" < -M "Makefile"
 {
     configure_nginx();
 }
-
-if (-f "$target/logs/nginx.pid") {
-    system("kill -QUIT `cat $target/logs/nginx.pid") == 0 or
-        warn "failed to quit existing nginx.\n";
-}
-
 my $make = 'make';
 if ($^O eq 'solaris') {
     $make = 'gmake';
@@ -205,8 +171,8 @@ shell("$make -j$jobs");
 shell("$make install");
 
 sub configure_nginx {
-    warn "./configure --prefix=$target @opts\n";
-    system("./configure", "--prefix=$target",
+    warn "./configure @opts\n";
+    system("./configure",
         @opts) == 0 or
             die "failed to configure nginx.\n";
 }
