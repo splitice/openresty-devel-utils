@@ -36,12 +36,57 @@ for my $file (@ARGV) {
     # variable align flags
     my ($need_variable_align, $variable_align_space) = (0, 0, 0);
 
+    # blank lines between functions
+    my ($expect_empty_lines, $should_not_empty) = (0, 0);
+
+    # empty line before else code block
+    my ($cur_line_is_empty, $prev_line_is_empty, $consecutive_empty_lines) = (0, 0, 0);
+
+    my ($cur_line_is_code_block_end, $prev_line_is_code_block_end) = (0, 0);
+
     while (<$in>) {
         $line = $_;
 
         $lineno++;
 
         #print "$lineno: $line";
+
+        $prev_line_is_empty = $cur_line_is_empty;
+        if ($line =~ /^\n$/) {
+            $cur_line_is_empty = 1;
+            $consecutive_empty_lines++;
+
+        } else {
+            $cur_line_is_empty = 0;
+            $consecutive_empty_lines = 0;
+        }
+
+        if ($line =~ /^\s+\} else/) {
+            if (!$prev_line_is_empty) {
+                output "need a blank line before else code blocks.";
+            }
+
+            if ($consecutive_empty_lines > 1) {
+                output "need a blank line before else code blocks,"
+                . " got $consecutive_empty_lines.";
+            }
+        }
+
+        $prev_line_is_code_block_end = $cur_line_is_code_block_end;
+        # eg: } /* xxx */, comment is optional
+        if ($line =~ /^\s+\}(\s+\/\*.*)?\n$/) {
+            $cur_line_is_code_block_end = 1;
+
+        } else {
+            $cur_line_is_code_block_end = 0;
+            if ($prev_line_is_code_block_end && !$cur_line_is_empty) {
+                # skip macro, brace(in first column), comment, break statement, return statement,
+                # dd() function call
+                if ($line !~ /^(#|\}|\s+\/\*|\s+break;|\s+return)|\s+dd\(/) {
+                    output "need a blank line after code blocks";
+                }
+            }
+        }
 
         if ($line =~ /\r\n$/) {
             output "found DOS line ending";
@@ -144,7 +189,7 @@ for my $file (@ARGV) {
             }
 
             # 3.
-            if ($line =~ /\(\w+\)\w+/) {
+            if ($line =~ /\(\w+( \*+)?\)\w+/) {
                 output "need space after )";
             }
         }
@@ -175,6 +220,15 @@ for my $file (@ARGV) {
                     output "incorrect front spaces, unclosed bracket";
                 }
 
+                # skip fall through case
+                if ($line =~ /^\s*case\b(\s*).*:/) {
+                    if ($1 ne ' ') {
+                        output "incorrect use of whitespace chars after 'case' "
+                               . "(one and only one space is required here)";
+                    }
+                    $next_level = 0;
+                }
+
                 # we only check the next line after '{' for now
                 if ($next_level == 1) {
                     $next_level = 0;
@@ -193,7 +247,9 @@ for my $file (@ARGV) {
             }
 
             # enter next level state
-            if ($macro_defined == 0 && $line =~ /^((?<!switch).)*{\n$/) {
+            if ($macro_defined == 0
+                && ($line =~ /^((?<!switch).)*{\n$/ || $line =~ /^\s*case\b.*?:/))
+            {
                 $next_level = 1;
                 $next_level_space = $space + 4;
             }
@@ -265,6 +321,35 @@ for my $file (@ARGV) {
         if ($line =~ /^{$/ || $line =~ /struct \w+ \{$/) {
             $need_variable_align = 1;
             $variable_align_space = 0;
+        }
+
+        if ($expect_empty_lines) {
+            if ($line =~ m{^\r?\n$}) {
+                $expect_empty_lines--;
+                if ($expect_empty_lines == 0) {
+                    $should_not_empty = 1;
+                }
+
+            } else {
+                # ignore vi setting in the end of the file
+                # ignore } followed by a blank line and #endif
+                if ($line !~ m{(\#|vi:set)}) {
+                    output "need to keep two blank lines between functions";
+                }
+
+                undef $expect_empty_lines;
+            }
+
+        } elsif ($should_not_empty) {
+            if ($line =~ m{^\r?\n$}) {
+                output "too many blank lines between functions, expect tow";
+            }
+
+            undef $should_not_empty;
+        }
+
+        if ($line =~ m{^\}.*$}) {
+            $expect_empty_lines = 2;
         }
     }
 }

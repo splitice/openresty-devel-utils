@@ -15,6 +15,7 @@ my $no_debug = $ENV{NGX_BUILD_NO_DEBUG};
 my $cc_opts = $ENV{NGX_BUILD_CC_OPTS};
 my $ld_opts = $ENV{NGX_BUILD_LD_OPTS};
 my $extra_config_opts = $ENV{NGX_BUILD_EXTRA_CONFIG_OPTS};
+my $build_asan = $ENV{NGX_BUILD_ASAN} ? "-fsanitize=address" : undef;
 
 my %opts;
 getopts("fp:", \%opts) or usage();
@@ -24,10 +25,6 @@ if (@ARGV == 0) {
 }
 
 my $force = $opts{f};
-if ($force) {
-    shift;
-}
-
 my $patch = $opts{p};
 if ($patch) {
     $patch = File::Spec->rel2abs($patch);
@@ -71,7 +68,7 @@ for (@opts) {
 
 push @opts, '--with-poll_module';
 
-my $found_cc_opt;
+my ($found_cc_opt, $found_ld_opt);
 my @new_opts;
 for my $opt (@opts) {
     if ($no_debug && $opt eq '--with-debug') {
@@ -87,13 +84,42 @@ for my $opt (@opts) {
     if (defined $optimize) {
         if ($opt =~ /^--with-cc-opt=/) {
             if ($opt =~ s/-O\d?\b/$optimize/g) {
-                $found_cc_opt = 1;
 
             } else {
                 $opt .= " $optimize";
             }
+        }
+
+        $found_cc_opt = 1;
+    }
+
+    if (defined $build_asan) {
+        if ($opt =~ /^--with-cc-opt=/) {
+            if ($opt =~ s/-fsanitize=\w+\b/$build_asan/g ) {
+
+            } else {
+                # prepend asan opt
+                $opt =~ s/^(--with-cc-opt=)(.*?)/${1}$build_asan $2/;
+            }
+
+            if ($opt =~ s/-f(no-)?omit-frame-pointer/-fno-omit-frame-pointer/g) {
+
+            } else {
+                $opt =~ s/^(--with-cc-opt=)(.*?)/${1}-fno-omit-frame-pointer $2/;
+            }
 
             $found_cc_opt = 1;
+        }
+
+        if ($opt =~ /^--with-ld-opt=/) {
+            if ($opt =~ s/-fsanitize=\w+\b/$build_asan/g) {
+
+            } else {
+                # prepend asan opt
+                $opt =~ s/^(--with-ld-opt=)(.*?)/${1}$build_asan $2/;
+            }
+
+            $found_ld_opt = 1;
         }
     }
 
@@ -120,12 +146,32 @@ if (defined $cc) {
     push @opts, "--with-cc=$cc";
 }
 
-if (defined $optimize && !$found_cc_opt) {
-    if (defined $cc_opts) {
-        $cc_opts .= " $optimize";
+if (!$found_cc_opt) {
+    if ($optimize) {
+        if (defined $cc_opts) {
+            $cc_opts .= " $optimize";
+
+        } else {
+            $cc_opts = $optimize;
+        }
+    }
+
+    if ($build_asan) {
+        if (defined $cc_opts) {
+            $cc_opts .= "$build_asan -fno-omit-frame-pointer $cc_opts";
+
+        } else {
+            $cc_opts = "$build_asan -fno-omit-frame-pointer";
+        }
+    }
+}
+
+if (!$found_ld_opt && defined $build_asan) {
+    if (defined $ld_opts) {
+        $ld_opts .= "$build_asan $ld_opts";
 
     } else {
-        $cc_opts = $optimize;
+        $ld_opts = $build_asan;
     }
 }
 
@@ -274,6 +320,18 @@ sub apply_patches {
     }
 
     
+
+    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+    if ($ver ge '001019009') {
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-ssl_client_hello_cb_yield.patch");
+    }
+    chdir ".." or die "cannot switch to ..\n";
+
+    if ($ver ge '001017008' && $ver lt '001021000') {
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-static_mod_escape_loc_hdr.patch");
+        chdir ".." or die "cannot switch to ..\n";
+    }
 
     unless ($ver ge '001005003') {
         shell("patch -p1 < $root/../openresty/patches/nginx-$version-channel-uninit-params.patch");
@@ -471,7 +529,20 @@ sub apply_patches {
         shell("patch -p1 < $root/../openresty/patches/patch.2019.h2.txt");
         
     }
-    chdir ".." or die "cannot switch to ..\n";
+
+    if ($ver ge '000006018' && $ver le '001020000') {
+        # 0.6.18 to 1.20.0 (included) are vulnerable
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        warn "applying patch for the NGINX resolver security vulnerability (CVE-2021-23017)";
+        shell("patch -p0 < $root/../openresty/patches/patch.2021.resolver.txt");
+        chdir ".." or die "cannot switch to ..\n";
+    }
+
+    if ($ver ge '001019003') {
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-privileged_agent_process_connections.patch");
+        chdir ".." or die "cannot switch to ..\n";
+    }
 }
 
 sub usage {
