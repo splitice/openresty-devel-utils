@@ -189,6 +189,7 @@ my $root = `pwd`;
 chomp $root;
 my $target = "$root";
 
+apply_patches();
 
 chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
 
