@@ -224,16 +224,20 @@ sub configure_nginx {
 
 sub apply_patches {
     if ($patch) {
-        shell("patch -p0 --follow-symlinks < $patch");
+        shell("patch -p1 < $patch");
     }
 
     unless ($disable_no_pool) {
         warn "applying no-pool patch...\n";
-        shell("patch -p0 --follow-symlinks < $root/../no-pool-nginx/nginx-$version-no_pool.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 --follow-symlinks < $root/../no-pool-nginx/nginx-$version-no_pool.patch");
+        chdir "..";
     }
 
     unless ($ver lt '001009003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-always_enable_cc_feature_tests.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-always_enable_cc_feature_tests.patch");
+        chdir "..";
     }
 
     if ($ver lt '001000014' || ($ver ge '001001000' && $ver lt '001001017')) {
@@ -270,45 +274,61 @@ sub apply_patches {
     chdir "..";
 
     warn "applying no-error-page patch...\n";
-    shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-no_error_pages.patch");
+    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+    shell("patch -p1 < $root/../openresty/patches/nginx-$version-no_error_pages.patch");
+    chdir "..";
 
     unless ($ver ge '001001016') {
         warn "applying the max_subrequests patch... ($ver)\n";
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-max_subrequests.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-max_subrequests.patch");
+        chdir "..";
     }
 
     unless ($ver ge '001001011' or ($ver ge '001000012' and $ver le '001001000')) {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-variable_header_ignore_no_hash.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-variable_header_ignore_no_hash.patch");
+        chdir "..";
     }
 
     unless ($ver ge '001002001') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-reset_wev_handler_in_named_locations.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-reset_wev_handler_in_named_locations.patch");
 
         unless ($ver lt '1009002') {
-            shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-filter_finalize_hang.patch");
+            shell("patch -p1 < $root/../openresty/patches/nginx-$version-filter_finalize_hang.patch");
         }
+        chdir "..";
     }
 
     unless ($ver ge '001002003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-add_core_vars_polluting_globals.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-add_core_vars_polluting_globals.patch");
 
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-resolver_debug_log_overflow.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-resolver_debug_log_overflow.patch");
 
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-poll_del_event_at_exit.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-poll_del_event_at_exit.patch");
+        chdir "..";
     }
 
     unless ($ver ge '001007009') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-location_if_inherits_proxy.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-location_if_inherits_proxy.patch");
+        chdir "..";
     }
 
     unless ($ver ge '001001006') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-named_location_clear_mods_ctx.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-named_location_clear_mods_ctx.patch");
+        chdir "..";
     }
 
     #shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-allow_request_body_updating.patch");
 
     unless ($ver ge '001001009' or ($ver ge '001000012' and $ver le '001001000')) {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-epoll_check_stale_wev.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-epoll_check_stale_wev.patch");
+        chdir "..";
     }
     #shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-gzip_ok_invalid_read_fix.patch");
 
@@ -317,7 +337,9 @@ sub apply_patches {
     chdir ".." or die "cannot switch to ..\n";
 
     unless ($ver ge '001005003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-upstream_truncation.patch");
+        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 --follow-symlinks < $root/../openresty/patches/nginx-$version-upstream_truncation.patch");
+        chdir "..";
     }
 
     chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
@@ -346,72 +368,72 @@ sub apply_patches {
         chdir ".." or die "cannot switch to ..\n";
     }
 
+    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
     unless ($ver ge '001005003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-channel-uninit-params.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-channel-uninit-params.patch");
     }
 
     unless ($ver ge '001002006') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-upstream_test_connect_kqueue.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-upstream_test_connect_kqueue.patch");
     }
 
     unless ($ver ge '001005013') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-slab_alloc_no_memory_as_info.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-slab_alloc_no_memory_as_info.patch");
     }
+    chdir "..";
 
     unless ($ver ge '001000008') {
         warn "applying request-body-preread patch...\n";
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-request_body_preread_fix.patch");
-
         chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-request_body_preread_fix.patch");
+
         warn "applying request-body-in-single-buf patch...\n";
         shell("patch -p1 -l < $root/../openresty/patches/nginx-$version-request_body_in_single_buf.patch");
         chdir ".." or die "cannot switch to ..\n";
     }
 
+    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
     unless ($ver ge '001002007') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-resolver_wev_handler_segfault_with_poll.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-resolver_wev_handler_segfault_with_poll.patch");
     }
 
     unless ($ver ge '001002008') {
         warn "applying the run_posted_requests_in_resolver patch...\n";
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-run_posted_requests_in_resolver.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-run_posted_requests_in_resolver.patch");
     }
+    chdir "..";
 
     unless ($ver ge '001002009' || $ver ge '001003000') {
         warn "applying the cve-2013-2070 patch...\n";
         chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-cve-2013-2070.patch");
+        shell("patch -p0 < $root/../openresty/patches/nginx-$version-cve-2013-2070.patch");
         chdir ".." or die "cannot switch to ..\n";
     }
 
     #warn "applying the invalid_referer_hash patch...\n";
+    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
     unless ($ver ge '001005003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-invalid_referer_hash.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-invalid_referer_hash.patch");
     }
 
     unless ($ver ge '001005003') {
-        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
         shell("patch -p1 < $root/../openresty/patches/nginx-$version-gzip_buffered_bug.patch");
-        chdir ".." or die "cannot switch to ..\n";
     }
 
     unless ($ver ge '001005003') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-unix_socket_accept_over_read.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-unix_socket_accept_over_read.patch");
     }
 
     unless ($ver ge '001005007') {
-        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
         shell("patch -p1 < $root/../openresty/patches/nginx-$version-gzip_flush_bug.patch");
-        chdir ".." or die "cannot switch to ..\n";
     }
 
     unless ($ver ge '001007008') {
-        shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-cache_lock_hang_in_subreq.patch");
+        shell("patch -p1 < $root/../openresty/patches/nginx-$version-cache_lock_hang_in_subreq.patch");
     }
 
-    shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-proxy_host_port_vars.patch");
+    shell("patch -p1 < $root/../openresty/patches/nginx-$version-proxy_host_port_vars.patch");
 
-    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
     shell("patch -p1 < $root/../openresty/patches/nginx-$version-cache_manager_exit.patch");
     chdir ".." or die "cannot switch to ..\n";
 
