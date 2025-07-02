@@ -332,9 +332,9 @@ sub apply_patches {
     }
     #shell("patch -p0 --follow-symlinks < $root/../openresty/patches/nginx-$version-gzip_ok_invalid_read_fix.patch");
 
-    chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
-    shell("patch -p1 < $root/../openresty/patches/nginx-$version-log_escape_non_ascii.patch");
-    chdir ".." or die "cannot switch to ..\n";
+    #chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
+    #shell("patch -p1 < $root/../openresty/patches/nginx-$version-log_escape_non_ascii.patch");
+    #chdir ".." or die "cannot switch to ..\n";
 
     unless ($ver ge '001005003') {
         chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
