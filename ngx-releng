@@ -7,13 +7,13 @@ cd $DIR
 README_FILE=(README.*)
 
 if [ -f $README_FILE ]; then
-    wiki_file=`perl -e 'print glob "doc/*.wiki"'`
-    if [ -n "$wiki_file" -a  -f "$wiki_file" ]; then
-        echo "Generating $README_FILE"
-        (set -x; wiki2markdown.pl $wiki_file > $README_FILE 2>/dev/null || exit 1)
-        #wiki2pod.pl $wiki_file > /tmp/a.pod || exit 1
-        #pod2text /tmp/a.pod > README || exit 1
-    fi
+    #wiki_file=`perl -e 'print glob "doc/*.wiki"'`
+    #if [ -n "$wiki_file" -a  -f "$wiki_file" ]; then
+    #    echo "Generating $README_FILE"
+    #    (set -x; wiki2markdown.pl $wiki_file > $README_FILE 2>/dev/null || exit 1)
+    #    #wiki2pod.pl $wiki_file > /tmp/a.pod || exit 1
+    #    #pod2text /tmp/a.pod > README || exit 1
+    #fi
 
     grep -Pzo '(?<=This document describes).*(?:-nginx-module|ngx_\w+)\s*\[v\d+\.\d[^\s\]]*' $README_FILE \
         | tr '\n' ' ' \
@@ -35,8 +35,8 @@ if [ -d src ]; then
     ack '(?<=\#define)\s*DDEBUG\s*[1-9]' src /dev/null
     ack '\(\);' $hfiles /dev/null
     ack '^\w+[^()]*?\*\s\w+' $hfiles /dev/null
-    ack '.{81}' $cfiles /dev/null
-    ack '[ \t]+$' $cfiles /dev/null
+    ack '.{81}' $cfiles $hfiles /dev/null
+    ack '[ \t]+$' $cfiles $hfiles /dev/null
     ack '(?<!:)//' $cfiles /dev/null
     ack '^\s*?\t\s*\S' $cfiles /dev/null
     ack '^static .*?\(\);' $cfiles /dev/null
@@ -47,6 +47,7 @@ if [ -d src ]; then
     ack 'if \( |if \(! |if \(.*? \)' $cfiles /dev/null
     ack '\b(?:if|for|while|switch)\(|\bdo\{' $cfiles /dev/null
     ack '^\#\s*define\s+ngx_[a-z]+_\w+?_version\s+\d+' $cfiles /dev/null
+    ack '\t' $cfiles $hfiles /dev/null
 
     perl -e 'use strict; use warnings;
         for my $fname (@ARGV) {

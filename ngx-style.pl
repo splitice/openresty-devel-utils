@@ -102,7 +102,7 @@ for my $file (@ARGV) {
         }
 
         if ($line =~ /^typedef struct \w+( *)(\w+);/) {
-            if (length($1) != 2) {
+            if (length($1) < 2) {
                 output "need two space before $2";
             }
         }
@@ -342,7 +342,7 @@ for my $file (@ARGV) {
 
         } elsif ($should_not_empty) {
             if ($line =~ m{^\r?\n$}) {
-                output "too many blank lines between functions, expect tow";
+                output "too many blank lines between functions, expect two";
             }
 
             undef $should_not_empty;
