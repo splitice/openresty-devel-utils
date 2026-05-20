@@ -237,11 +237,6 @@ sub apply_patches {
 
 
     my $or_patch_dir = "$root/../openresty/patches/nginx/$version";
-    unless ($ver lt '001009003') {
-        chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
-        shell("patch -p1 < $or_patch_dir/nginx-$version-always_enable_cc_feature_tests.patch");
-        chdir "..";
-    }
 
     if ($ver lt '001000014' || ($ver ge '001001000' && $ver lt '001001017')) {
         chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
@@ -588,7 +583,7 @@ sub apply_patches {
 
     if ($ver ge '001027001'){
         chdir "nginx-$version" or die "cannot switch to nginx-$version\n";
-        shell("patch -p1 < $or_patch_dir/nginx-$version-quic_ssl_lua_yield.patch");
+        shell("patch -p1 < $or_patch_dir/ngin   x-$version-quic_ssl_lua_yield.patch");
         shell("patch -p1 < $or_patch_dir/nginx-$version-http2_subreq_error_wakeup.patch");
         chdir "..";
     }
